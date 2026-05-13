@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>킥보드 BLE 테스트</title>
+<style>
+  body { font-family: sans-serif; text-align: center; padding: 30px; background: #f0f4f8; }
+  h2 { color: #333; }
+  button { display: block; width: 80%; margin: 12px auto; padding: 16px;
+           font-size: 18px; border: none; border-radius: 10px; cursor: pointer; }
+  #connectBtn { background: #4CAF50; color: white; }
+  #status { margin: 20px auto; padding: 12px; border-radius: 8px;
+            background: #fff; max-width: 300px; font-weight: bold; }
+  .speed { background: #2196F3; color: white; }
+  .speed:disabled { background: #aaa; }
+</style>
+</head>
+<body>
+<h2>킥보드 제어</h2>
+<div id="status">연결 안됨</div>
+<button id="connectBtn" onclick="connect()">🔵 블루투스 연결</button>
+<hr>
+<button class="speed" id="btnLow" onclick="sendSpeed('speed:3')" disabled>🐢 저속 (3km/h)</button>
+<button class="speed" id="btnMid" onclick="sendSpeed('speed:5')" disabled>🚶 중속 (5km/h)</button>
+<button class="speed" id="btnHigh" onclick="sendSpeed('speed:8')" disabled>🚀 고속 (8km/h)</button>
+
+<script>
+const SERVICE_UUID = "12345678-1234-5678-1234-56789abcdef0";
+const CHAR_UUID = "12345678-1234-5678-1234-56789abcdef1";
+let characteristic = null;
+
+async function connect() {
+  try {
+    document.getElementById('status').innerText = '연결 중...';
+    const device = await navigator.bluetooth.requestDevice({
+      filters: [{ name: 'kickboard' }],
+      optionalServices: [SERVICE_UUID]
+    });
+    const server = await device.gatt.connect();
+    const service = await server.getPrimaryService(SERVICE_UUID);
+    characteristic = await service.getCharacteristic(CHAR_UUID);
+    document.getElementById('status').innerText = '✅ 연결됨!';
+    document.getElementById('status').style.background = '#c8f7c5';
+    document.querySelectorAll('.speed').forEach(b => b.disabled = false);
+  } catch(e) {
+    document.getElementById('status').innerText = '❌ 연결 실패: ' + e.message;
+  }
+}
+
+async function sendSpeed(cmd) {
+  if (!characteristic) return;
+  try {
+    await characteristic.writeValue(new TextEncoder().encode(cmd));
+    document.getElementById('status').innerText = '✅ 전송됨: ' + cmd;
+  } catch(e) {
+    document.getElementById('status').innerText = '❌ 전송 실패: ' + e.message;
+  }
+}
+</script>
+</body>
+</html>
